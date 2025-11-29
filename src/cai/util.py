@@ -748,6 +748,11 @@ def get_ollama_api_base():
     return os.environ.get("OLLAMA_API_BASE", "http://localhost:8000/v1")
 
 
+def get_vllm_api_base():
+    """Get the vLLM API base URL from environment variable or default to localhost:8000."""
+    return os.environ.get("VLLM_API_BASE", "http://localhost:8000/v1")
+
+
 def load_prompt_template(template_path):
     """
     Load a prompt template from the package resources.

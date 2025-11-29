@@ -82,6 +82,7 @@ from cai.util import (
     create_agent_streaming_context,
     finish_agent_streaming,
     get_ollama_api_base,
+    get_vllm_api_base,
     start_active_timer,
     start_claude_thinking_if_applicable,
     start_idle_timer,
@@ -2773,6 +2774,15 @@ class OpenAIChatCompletionsModel(Model):
             elif provider == "gemini":
                 kwargs.pop("parallel_tool_calls", None)
                 # Add any specific gemini settings if needed
+            elif provider == "vllm" or provider == "openai":
+                # vLLM support - use OpenAI-compatible API
+                kwargs["custom_llm_provider"] = "openai"
+                # Use VLLM_API_BASE if set
+                if not kwargs.get("api_base"):
+                    kwargs["api_base"] = get_vllm_api_base()
+                # vLLM needs these params removed for tool calling
+                if not converted_tools:
+                    kwargs.pop("tool_choice", None)
         else:
             # Handle models without provider prefix
             if "claude" in model_str or "anthropic" in model_str:
