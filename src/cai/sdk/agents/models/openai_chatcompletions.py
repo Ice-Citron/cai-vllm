@@ -2780,6 +2780,9 @@ class OpenAIChatCompletionsModel(Model):
                 # Use VLLM_API_BASE if set
                 if not kwargs.get("api_base"):
                     kwargs["api_base"] = get_vllm_api_base()
+                # Strip the vllm/ or openai/ prefix from model name
+                model_without_prefix = "/".join(kwargs["model"].split("/")[1:])
+                kwargs["model"] = model_without_prefix
                 # vLLM needs these params removed for tool calling
                 if not converted_tools:
                     kwargs.pop("tool_choice", None)
