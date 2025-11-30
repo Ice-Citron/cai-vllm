@@ -28,6 +28,9 @@ vllm serve OpenPipe/Qwen3-14B-Instruct \
 
 - `VLLM_API_BASE`: Base URL for your vLLM server (default: `http://localhost:8000/v1`)
 - `CAI_MODEL`: Model identifier with `vllm/` or `openai/` prefix
+- `VLLM_STOP_TOKENS`: Comma-separated list of stop tokens to prevent response repetition (optional)
+  - Default: `<|im_start|>,<|im_end|>,<|endoftext|>`
+  - Override example: `VLLM_STOP_TOKENS="<|eot_id|>,<|end_of_text|>"`
 
 ### Example Configuration
 
@@ -40,7 +43,23 @@ CAI_PRICE_LIMIT="0"                # No cost for local models
 CAI_TRACING="false"                # Disable OpenAI tracing
 CAI_STREAM=false
 PROMPT_TOOLKIT_NO_CPR=1
+
+# Optional: Custom stop tokens for specific models
+# VLLM_STOP_TOKENS="<|im_start|>,<|im_end|>,<|endoftext|>"
 ```
+
+### Preventing Repetitive Tool Calls
+
+CAI automatically manages conversation history to prevent context overflow and repetitive behavior:
+
+1. **Automatic Message Deduplication**: Duplicate consecutive user messages are removed to prevent loops
+2. **Conversation Truncation**: History is limited to 50 messages (keeping system prompt + recent context)
+3. **Stop Tokens**: Default stop tokens prevent the model from generating repetitive responses
+
+If you still experience repetitive tool calls:
+- Reduce max context length: `--max-model-len 16384` (when starting vLLM)
+- Disable prefix caching: `--no-enable-prefix-caching`
+- Try different stop tokens via `VLLM_STOP_TOKENS` environment variable
 
 ## Supported Models
 

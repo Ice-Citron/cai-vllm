@@ -83,6 +83,7 @@ from cai.util import (
     finish_agent_streaming,
     get_ollama_api_base,
     get_vllm_api_base,
+    get_vllm_stop_tokens,
     start_active_timer,
     start_claude_thinking_if_applicable,
     start_idle_timer,
@@ -2786,6 +2787,10 @@ class OpenAIChatCompletionsModel(Model):
                 # vLLM needs these params removed for tool calling
                 if not converted_tools:
                     kwargs.pop("tool_choice", None)
+                # Add stop tokens to prevent response repetition (critical fix for loops)
+                stop_tokens = get_vllm_stop_tokens()
+                if stop_tokens:
+                    kwargs["stop"] = stop_tokens
         else:
             # Handle models without provider prefix
             if "claude" in model_str or "anthropic" in model_str:

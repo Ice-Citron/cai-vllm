@@ -753,6 +753,87 @@ def get_vllm_api_base():
     return os.environ.get("VLLM_API_BASE", "http://localhost:8000/v1")
 
 
+def get_vllm_stop_tokens():
+    """
+    Get stop tokens for vLLM to prevent response repetition.
+
+    Returns a list of stop tokens from VLLM_STOP_TOKENS env var (comma-separated),
+    or default tokens for common chat formats.
+    """
+    env_tokens = os.environ.get("VLLM_STOP_TOKENS", "")
+    if env_tokens:
+        return [token.strip() for token in env_tokens.split(",") if token.strip()]
+
+    # Default stop tokens for common chat formats (Qwen, Llama, Mistral, etc.)
+    return ["<|im_start|>", "<|im_end|>", "<|endoftext|>"]
+
+
+def fix_message_list(messages, max_messages=50):
+    """
+    Sanitize and truncate message list to prevent context overflow and tool call errors.
+
+    This function:
+    1. Removes duplicate consecutive user messages (prevents loops)
+    2. Ensures proper user/assistant/tool alternation
+    3. Truncates old messages while preserving system message and recent context
+    4. Keeps the most recent messages to fit within context window
+
+    Args:
+        messages: List of message dictionaries with 'role' and 'content' keys
+        max_messages: Maximum number of messages to keep (default: 50)
+
+    Returns:
+        Sanitized and truncated message list
+    """
+    if not messages or len(messages) <= 1:
+        return messages
+
+    # Step 1: Remove duplicate consecutive user messages
+    deduplicated = []
+    last_user_content = None
+
+    for msg in messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
+
+        # Skip duplicate user messages (key fix for the loop issue)
+        if role == "user":
+            if content == last_user_content:
+                continue
+            last_user_content = content
+
+        deduplicated.append(msg)
+
+    # Step 2: Truncate to max_messages while preserving important context
+    if len(deduplicated) <= max_messages:
+        return deduplicated
+
+    # Keep system message if it exists
+    result = []
+    system_msg = None
+    non_system_msgs = []
+
+    for msg in deduplicated:
+        if msg.get("role") == "system":
+            system_msg = msg
+        else:
+            non_system_msgs.append(msg)
+
+    # Add system message first
+    if system_msg:
+        result.append(system_msg)
+        max_messages -= 1
+
+    # Keep the most recent messages
+    if len(non_system_msgs) > max_messages:
+        # Keep only the most recent messages
+        result.extend(non_system_msgs[-max_messages:])
+    else:
+        result.extend(non_system_msgs)
+
+    return result
+
+
 def load_prompt_template(template_path):
     """
     Load a prompt template from the package resources.

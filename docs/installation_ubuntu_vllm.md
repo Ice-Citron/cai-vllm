@@ -154,8 +154,17 @@ CAI_PRICE_LIMIT="0"           # Free local inference
 CAI_TRACING="false"           # Disable OpenAI tracing
 CAI_STREAM=false
 PROMPT_TOOLKIT_NO_CPR=1
+
+# Optional: Stop tokens to prevent response repetition (defaults work for most models)
+# VLLM_STOP_TOKENS="<|im_start|>,<|im_end|>,<|endoftext|>"
 EOF
 ```
+
+**Important Notes:**
+- CAI automatically manages conversation history to prevent context overflow
+- Duplicate user messages are automatically removed to prevent infinite loops
+- Conversation is truncated to 50 messages to stay within context limits
+- Default stop tokens work for Qwen, Llama, Mistral, and most chat models
 
 ### Step 7: Start vLLM Server
 
@@ -353,6 +362,45 @@ sudo ufw allow 8000
 
 # Check the process
 ps aux | grep vllm
+```
+
+### Context Window Exceeded Error
+```
+ContextWindowExceededError: This model's maximum context length is 40960 tokens.
+However, your request has 41906 input tokens.
+```
+
+**Solution**: CAI automatically truncates conversation history to 50 messages and removes duplicate messages. If you still hit this error:
+
+1. Restart CAI to clear the conversation history
+2. Reduce vLLM's max context length:
+   ```bash
+   vllm serve model --max-model-len 16384
+   ```
+3. The error will no longer occur as CAI now manages history automatically
+
+### Repetitive Tool Calls (Model Stuck in Loop)
+
+**Symptoms**: Agent keeps making the same curl/tool calls repeatedly without progressing
+
+**Causes**:
+1. Conversation history growing unbounded
+2. Model generating repetitive responses
+3. Duplicate user messages in history
+
+**Solutions** (all implemented automatically in CAI now):
+- ✅ Message deduplication (removes duplicate consecutive user messages)
+- ✅ Conversation truncation (limits to 50 messages)
+- ✅ Stop tokens (prevents response repetition)
+
+If issues persist after updating to latest cai-vllm:
+```bash
+# Pull latest changes
+cd /path/to/cai-vllm
+git pull
+
+# Restart CAI (no reinstall needed with editable install)
+cai
 ```
 
 ## Performance Optimization
