@@ -1,0 +1,23 @@
+# Requirements for vLLM + Kimi-Linear-48B + CAI
+# Install with: pip install -r requirements.txt
+
+# vLLM - inference engine
+vllm>=0.6.0
+
+# Flash Linear Attention - required for Kimi's KDA architecture
+fla-core>=0.4.0
+
+# PyTorch (should be installed by vLLM, but ensure compatible version)
+torch>=2.6.0
+
+# Transformers for model loading
+transformers>=4.45.0
+
+# HuggingFace Hub for model downloads
+huggingface_hub>=0.25.0
+
+# LiteLLM - used by CAI for unified LLM interface
+litellm>=1.40.0
+
+# OpenAI SDK - for API compatibility
+openai>=1.30.0
