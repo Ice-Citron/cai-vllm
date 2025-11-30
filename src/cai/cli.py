@@ -453,7 +453,10 @@ def run_cai_cli(
     # Reset simple agent manager for clean start
     from cai.sdk.agents.simple_agent_manager import AGENT_MANAGER
     AGENT_MANAGER.reset_registry()
-    
+    # CRITICAL: Clear all conversation histories to ensure fresh start
+    # This prevents history from previous CAI sessions from persisting
+    AGENT_MANAGER.clear_all_histories()
+
     # Register the starting agent with AGENT_MANAGER
     starting_agent_name = getattr(starting_agent, "name", last_agent_type)
     AGENT_MANAGER.switch_to_single_agent(starting_agent, starting_agent_name)
