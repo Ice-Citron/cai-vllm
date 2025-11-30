@@ -639,19 +639,16 @@ class OpenAIChatCompletionsModel(Model):
             #     }
             #     self.add_to_message_history(sys_msg)
 
-            # Add user prompt(s) to message_history
+            # Log user prompt(s) but DON'T add to message_history yet
+            # (will be added from the converted_messages after API call to avoid duplication)
             if isinstance(input, str):
-                user_msg = {"role": "user", "content": input}
-                self.add_to_message_history(user_msg)
                 # Log the user message
                 self.logger.log_user_message(input)
             elif isinstance(input, list):
                 for item in input:
-                    # Try to extract user messages
+                    # Try to extract and log user messages
                     if isinstance(item, dict):
                         if item.get("role") == "user":
-                            user_msg = {"role": "user", "content": item.get("content", "")}
-                            self.add_to_message_history(user_msg)
                             # Log the user message
                             if item.get("content"):
                                 self.logger.log_user_message(item.get("content"))
@@ -731,6 +728,18 @@ class OpenAIChatCompletionsModel(Model):
                 logger.debug(
                     f"LLM resp:\n{json.dumps(response.choices[0].message.model_dump(), indent=2)}\n"
                 )
+
+            # Add user messages from input to message_history now (after successful API call)
+            # This ensures they're available for the next turn and avoids duplication
+            if isinstance(input, str):
+                user_msg = {"role": "user", "content": input}
+                self.add_to_message_history(user_msg)
+            elif isinstance(input, list):
+                for item in input:
+                    if isinstance(item, dict):
+                        if item.get("role") == "user":
+                            user_msg = {"role": "user", "content": item.get("content", "")}
+                            self.add_to_message_history(user_msg)
 
             # Ensure we have reasonable token counts
             if response.usage:
@@ -1293,17 +1302,15 @@ class OpenAIChatCompletionsModel(Model):
                 #         }
                 #         self.add_to_message_history(sys_msg)
 
+                # Log user messages but DON'T add to message_history yet (streaming version)
+                # Will be added after successful stream completion to avoid duplication
                 if isinstance(input, str):
-                    user_msg = {"role": "user", "content": input}
-                    self.add_to_message_history(user_msg)
                     # Log the user message
                     self.logger.log_user_message(input)
                 elif isinstance(input, list):
                     for item in input:
                         if isinstance(item, dict):
                             if item.get("role") == "user":
-                                user_msg = {"role": "user", "content": item.get("content", "")}
-                                self.add_to_message_history(user_msg)
                                 # Log the user message
                                 if item.get("content"):
                                     self.logger.log_user_message(item.get("content"))
@@ -2372,6 +2379,18 @@ class OpenAIChatCompletionsModel(Model):
                         for tool_call in tool_call_msg.get("tool_calls", []):
                             tool_calls_list.append(tool_call)
                     self.logger.log_assistant_message(None, tool_calls_list)
+
+                # Add user messages to message_history now (after successful stream completion)
+                # This ensures they're available for the next turn and avoids duplication
+                if isinstance(input, str):
+                    user_msg = {"role": "user", "content": input}
+                    self.add_to_message_history(user_msg)
+                elif isinstance(input, list):
+                    for item in input:
+                        if isinstance(item, dict):
+                            if item.get("role") == "user":
+                                user_msg = {"role": "user", "content": item.get("content", "")}
+                                self.add_to_message_history(user_msg)
 
                 # Always log text content if it exists, regardless of suppress_final_output
                 # The suppress_final_output flag is only for preventing duplicate tool call display
