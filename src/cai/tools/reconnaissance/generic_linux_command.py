@@ -102,6 +102,10 @@ async def generic_linux_command(command: str = "",
     Returns:
         Command output, session ID for interactive commands, or status message
     """
+    # Fix for LLMs passing "None" as string instead of null
+    if session_id in ("None", "null", ""):
+        session_id = None
+
     # Handle special session management commands (tolerant parser)
     cmd_lower = command.strip().lower()
     if cmd_lower.startswith("output "):
